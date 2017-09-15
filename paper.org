@@ -1,0 +1,34 @@
+#+TITLE: A Pure and Functional Game Engine
+#+AUTHOR: Jeffrey Dwyer
+
+
+* Abstract
+
+* Introduction
+** Current State of Game Engines
+
+* A Functional Approach
+** Advantages of the Functional Style
+** Abstraction Techniques
+** Types
+** Recursion Schemes
+
+* Reactive Design
+** Reactive Programming
+** Functional Reactive Programming
+** Design that will be used in the paper
+
+* Parallelization
+** Parallelism in Haskell
+** Haskell STM
+** How design can take advantage of parallelism
+
+* Linear Types and Memory Management
+** Garbage Collection in Haskell
+** Compact Regions
+** Linear Types
+
+* Conclusions
+
+bibliography:refs.bib
+bibliographystyle:unsort
