@@ -16,12 +16,16 @@
 ** Current State of Game Engines
 ** Goal of 60 fps
 * Game Engine Architecture
+- There are two portions of the engine which are completely serial, the construction of the render tree and iteraction resolution cite:tulip_multi-threaded_2006.
+- Several features which can be parallelized are: interpolation of animations, the application of lighting and textures, sound source contributions, rendering frames between updates cite:tulip_multi-threaded_2006.
+- Certain modules within the engine serve only to produce or consume data. Several producers are user input and networking. Several consumers are sound and rendering cite:tulip_multi-threaded_2006.
 ** Game Loop
 ** Rendering
 ** Physics
 ** Input
 ** Scenes
 * Parallelization For Free
+- There are several considerations to be taken when parallelizing the engine. First, the number of threads should be minimized to the number of cores available. Second, the creation and descrution of threads should be avoided while processing data. Third, the synchonization should be minimzed. And finally, the workload should be balanced across threads cite:tulip_multi-threaded_2006.
 ** Parallelism in Haskell
 ** Haskell STM
 ** How design can take advantage of parallelism
@@ -36,7 +40,8 @@
 ** Fraxl
 *** Generalization of Haxl
 *** Using previous state as a data source
-* Making it Efficent 
+* Making it Efficent
+- Generational garbage collection favors young objects cite:sansom_generational_1993.
 ** Analyzing Time Complexity of Functional Data Structures
 *** Differences from normal data structures
 *** lazieness
@@ -61,4 +66,4 @@
 * Conclusions
 
 bibliography:refs.bib
-bibliographystyle:unsort
+bibliographystyle:unsrt
