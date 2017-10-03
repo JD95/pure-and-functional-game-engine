@@ -1,33 +1,63 @@
+# org-mode settings
+#+STARTUP: indent
+#+STARTUP: hidestar
+
+# paper meta 
 #+TITLE: A Pure and Functional Game Engine
 #+AUTHOR: Jeffrey Dwyer
+#+DATE: 09/27/2017
+#+OPTIONS: toc:nil
 
+# latex options
+#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
 
 * Abstract
-
 * Introduction
 ** Current State of Game Engines
-
-* A Functional Approach
-** Advantages of the Functional Style
-** Abstraction Techniques
-** Types
-** Recursion Schemes
-
-* Reactive Design
-** Reactive Programming
-** Functional Reactive Programming
-** Design that will be used in the paper
-
-* Parallelization
+** Goal of 60 fps
+* Game Engine Architecture
+** Game Loop
+** Rendering
+** Physics
+** Input
+** Scenes
+* Parallelization For Free
 ** Parallelism in Haskell
 ** Haskell STM
 ** How design can take advantage of parallelism
-
-* Linear Types and Memory Management
+* Scaling the design 
+** Reactive Programming
+*** Preventing unnecessary computations with Push - Pull frp
+- Perhaps using the pull option to prevent physics from being calculated for that object? Although, I'd have to figure out how to "remove" that object from the physics consideration, but then again, we'd have to build up the quad tree anyways, so not including it in that calculation might be possible.
+** Haxl
+*** Uses at facebook
+*** Data Sources
+*** Request caching
+** Fraxl
+*** Generalization of Haxl
+*** Using previous state as a data source
+* Making it Efficent 
+** Analyzing Time Complexity of Functional Data Structures
+*** Differences from normal data structures
+*** lazieness
+*** purity
+*** methods
+*** several useful datastructures for the game
 ** Garbage Collection in Haskell
+*** Reiterate problems with GC
+*** How to optimize for low GC in Haskell
+** Fusion
+*** Consumer - Producer pattern
+*** Recursion Schemes
+*** Application to engine
 ** Compact Regions
+*** What are compact regions
+*** How they're used
+*** Application to engine
 ** Linear Types
-
+*** Linear Logic
+*** Implications on GC
+*** Application to engine
 * Conclusions
 
 bibliography:refs.bib
