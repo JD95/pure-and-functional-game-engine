@@ -1,0 +1,65 @@
+# org-mode settings
+#+STARTUP: indent
+#+STARTUP: hidestar
+
+# paper meta 
+#+TITLE: White Paper Outline
+#+AUTHOR: Jeffrey Dwyer
+#+OPTIONS: toc:nil date:nil
+
+
+# latex options
+#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
+
+* Abstract
+* Introduction
+- Current State of Game Engines
+- The End of Moore's Law
+- The Rise of Multi-core Processing
+- Goal of 60 fps
+* Game Engine Architecture
+- Game Loop
+- Minimizing Work
+- Minimizing Allocations
+- Maximizing Spatial Locality
+* Parallelization For Free
+- Parallel Engine Components 
+- Parallelism of Pure Functions 
+- Software Transactional Memory 
+* Scaling the design 
+- Reactive Programming
++ Programming With Time 
++ Push - Pull frp
++ Scene Updates Through FRP
++ Message Passing
+- Haxl
++ Uses at facebook
++ Data Sources
++ Request caching
+- Fraxl
++ Generalization of Haxl
++ Using previous state as a data source
+* Making it Efficent
+- Analyzing Time Complexity of Functional Data Structures
++ Differences from normal data structures
++ lazieness
++ purity
++ methods
++ several useful datastructures for the game
+- Garbage Collection in Haskell
++ Reiterate problems with GC
++ How to optimize for low GC in Haskell
+- Fusion
++ Consumer - Producer pattern
++ Recursion Schemes
++ Application to engine
+- Compact Regions
++ What are compact regions
++ How they're used
++ Application to engine
+- Linear Types
++ Linear Logic
++ Implications on GC
++ Application to engine
+* Conclusions
+

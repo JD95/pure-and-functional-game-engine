@@ -12,27 +12,36 @@
 #+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
 
 * Abstract
+
+Some more interesting stuff
+
 * Introduction
 ** Current State of Game Engines
+- Popular engines like Unity break down into several modules, artifical intelligence, physics, scripting, input, multimedia, and networking cite:messaoudi_dissecting_2015. 
+** The End of Moore's Law
+** The Rise of Multi-core Processing
 ** Goal of 60 fps
 * Game Engine Architecture
 - There are two portions of the engine which are completely serial, the construction of the render tree and iteraction resolution cite:tulip_multi-threaded_2006.
 - Several features which can be parallelized are: interpolation of animations, the application of lighting and textures, sound source contributions, rendering frames between updates cite:tulip_multi-threaded_2006.
 - Certain modules within the engine serve only to produce or consume data. Several producers are user input and networking. Several consumers are sound and rendering cite:tulip_multi-threaded_2006.
 ** Game Loop
-** Rendering
-** Physics
-** Input
-** Scenes
+** Minimizing Work
+- Even in fully featured and popular game engines like Unity, most of the work is done in the rendering modules of the engine cite:messaoudi_dissecting_2015.  
+** Minimizing Allocations
+** Maximizing Spatial Locality
 * Parallelization For Free
 - There are several considerations to be taken when parallelizing the engine. First, the number of threads should be minimized to the number of cores available. Second, the creation and descrution of threads should be avoided while processing data. Third, the synchonization should be minimzed. And finally, the workload should be balanced across threads cite:tulip_multi-threaded_2006.
+** Parallel Engine Components 
 ** Parallelism in Haskell
 ** Haskell STM
-** How design can take advantage of parallelism
-* Scaling the design 
+* Feasability of design in large scale applications.
 ** Reactive Programming
-*** Preventing unnecessary computations with Push - Pull frp
+*** Programming With Time 
+*** Push - Pull frp
 - Perhaps using the pull option to prevent physics from being calculated for that object? Although, I'd have to figure out how to "remove" that object from the physics consideration, but then again, we'd have to build up the quad tree anyways, so not including it in that calculation might be possible.
+*** Scene Updates Through FRP
+*** Message Passing
 ** Haxl
 *** Uses at facebook
 *** Data Sources
@@ -41,7 +50,8 @@
 *** Generalization of Haxl
 *** Using previous state as a data source
 * Making it Efficent
-- Generational garbage collection favors young objects cite:sansom_generational_1993.
+- Generational garbage collection favors young objects cite:marlow_parallel_2008. 
+- Immutability allows for efficent checking of garbage in large structures cite:marlow_parallel_2008.
 ** Analyzing Time Complexity of Functional Data Structures
 *** Differences from normal data structures
 *** lazieness
@@ -56,6 +66,9 @@
 *** Recursion Schemes
 *** Application to engine
 ** Compact Regions
+- Immutable data with no outgoing pointers is best suited for networking and serialization  cite:yang_efficient_2015.
+- Compact regions can be written directly to files or sent over the network. The internal pointers need simply be offset to match their new spot in memory  cite:yang_efficient_2015.
+- The property of no outgoing pointers means that only the top level reference to the structure need be checked during garbage collection  cite:yang_efficient_2015.
 *** What are compact regions
 *** How they're used
 *** Application to engine

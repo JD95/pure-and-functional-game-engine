@@ -1,0 +1,25 @@
+#+TITLE: Conceptual Experiment Plan
+#+AUTHOR: Jeffrey Dwyer
+#+DATE: 10/25/2017
+#+OPTIONS: toc:nil
+# latex options
+#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
+
+This paper outlines a possible design for a game engine designed for parallel execution. In order to measure the effectiveness of the design, a prototype implementation would be needed. The prototype would be subject to several benchmarking and performance profiling techniques.
+
+* Data to be collected
+
+There are several dimensions of game engine performance. CPU usage is measured in units of time a process spends working on the processing unit. This measurement does not include kernal interrupts. Given the nature of a parallel engine, the CPU metric would be extended to total utilization over multiple cores. RAM usuage is measured in storage units of megabytes. Frames per second is a measure of how quickly the engine can render the next frame. Each of these dimensions will be measured over a period of time. 
+
+* Equipment needed
+
+These test will be run on several machines with different CPUs. Several multi-core architectures will be tested, ranging from dual core to eight core chipsets from both Intel and AMD.
+
+* Research Methods
+
+There will be three tests:
+- Simulation of 40,000 particles.
+- Simulation of 10,000 graphical entities.
+- Simulation of 5,000 animated entities.
+
+Each test will run its simulation for roughly a minute and will be repeated several hundred times to allow for statistical analysis. Frames per second will be outputed by the engine itseslf, RAM usage will be monitored using system tools on the test systems, and CPU usage will be measured using the program Threadscope.
