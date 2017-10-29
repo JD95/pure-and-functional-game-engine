@@ -32,10 +32,14 @@ Some more interesting stuff
 ** Maximizing Spatial Locality
 * Parallelization For Free
 - There are several considerations to be taken when parallelizing the engine. First, the number of threads should be minimized to the number of cores available. Second, the creation and descrution of threads should be avoided while processing data. Third, the synchonization should be minimzed. And finally, the workload should be balanced across threads cite:tulip_multi-threaded_2006.
+- One of the main concerns in concurrent programming is the possibility of dead locks, a situation in which many seperate processes are waiting on eachother in a cycle for some resource. One technique to avoid dead locks is software transactional memory (STM). This methodology performs small, tasks which either complete successfuly or are rolled back. Atomicity, a name given to the previous features, is what allows for locking to be avoided all together using STM. Lock free data structures using STM are faster than their locking counterparts  cite:discolo_lock_2006.
 ** Parallel Engine Components 
 ** Parallelism in Haskell
 ** Haskell STM
 * Feasability of design in large scale applications.
+- Arrowized FRP can change how signals are processed without space leaks  cite:czaplicki_asynchronous_2013.
+- In their formulation of FRP, changes do not propogate unless a discrete event occurs cite:czaplicki_asynchronous_2013. This change, while unfaithful to the original semantics of FRP is much more suited for graphical interfaces due to that face that the user can only interact with the system in discrete ways. It goes without saying that the interaction model between the user and a game engine are the same as that of a normal graphical application, however this formulation can also extend to all types of events within the reactive system.
+- In his reformulation of the original FRP semantics, Elliott introduced the idea of reactive values and push-pull semantics to address the same performance issues. Reactive values allow for changes to certain values to be propogated or pushed through the system, leaving pull based updates to time dependent events. This change removes much of the wasteful updates caused in the original formulation cite:elliott_push-pull_2009.
 ** Reactive Programming
 *** Programming With Time 
 *** Push - Pull frp
