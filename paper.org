@@ -9,56 +9,53 @@
 #+OPTIONS: toc:nil
 
 # latex options
-#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
+#+LATEX_HEADER: \usepackage[margin=1.0in]{geometry}
+#+LATEX_HEADER: \linespread{2.0}
+#+LATEX_CLASS_OPTIONS: [12pt]
 
 * Abstract
 
-Some more interesting stuff
 
 * Introduction
-** Current State of Game Engines
-- Popular engines like Unity break down into several modules, artifical intelligence, physics, scripting, input, multimedia, and networking cite:messaoudi_dissecting_2015. 
-** The End of Moore's Law
-** The Rise of Multi-core Processing
-** Goal of 60 fps
+
+Game engines stand in the cross roads of many fields, benifiting from research ranging from physical simulations to artifical intelligence. Popular engines like Unity break down into several modules, artifical intelligence, physics, scripting, input, multimedia, and networking cite:messaoudi_dissecting_2015. 
+
+The high performance demanded of games forces their engines to be optimized so that all of the intensive calculations for a single frame of the game must fit within a mere sixteen milisecond window, the typical time span needed to achieve a frame rate of sixity frames per second. The common approach for the past few decades has been to optimize engines for single processor machines and such an approach has been successful due to the rate at which processing power has increased. The famous Moore's Law predicted a doubling of computing power every two years. This pace was continuous until around 2015 when Intel announced that its pace had slowed to almost two and a half years with a predicted geometric slowing every year. With processors reaching the physical limits of their individual capabilities, there has been a movement towards mutlicore design in software to compensate.
+
+Unfortunately, years of optimization for a single core processor leaves many of the most popular game engines unable to adapt to multicore designs without massive reworkings. This is unfortunate because many aspects of modern engine architectures actually lend themselves towards parallel execution. 
+
 * Game Engine Architecture
+
+
+All graphical programs follow a similar flow in their execution. First, they will collect input from user interfaces like keyboards and the mouse. This input information is then fed into an internal logic for the system which then calculates the a new system state. The system state is finally converted into the displayed image on the computer screen and the process repeates. Game engines follow a similar pattern, except the interal logic is typically divided more explicitly. User input is normally given to the individual entities within the virtual scene which then decided what actions they are going to take that frame. Once the entities have calculated how they will change the world and affect other entities, these changes are given to a physics simulation which then implements and movements or forces exerted within the world. Any collisions that occur, with the ground for example, are taken into account and the entities are allowed to react to this information. At this point, the state for the frame has been calculated and the positions and orientations of models within the world are passed on to a rendering process which will create a frame to be displayed.
+
+Modern games have potentially thousands of complex entities within the game world, putting even more pressure on the engine to complete its tasks as soon as possible. Typical tactics to achieve speed involve special algorithms to try and minimize the actual work to do, minimizing the number of allocations made in system memory, and keeping related information closer in memory to optimize spatial locality. These techniques apply to multicore designs as well as single processor architectures. There are however, certain advantages that a multicore system would have over standard implementations today.
+ 
 - There are two portions of the engine which are completely serial, the construction of the render tree and iteraction resolution cite:tulip_multi-threaded_2006.
 - Several features which can be parallelized are: interpolation of animations, the application of lighting and textures, sound source contributions, rendering frames between updates cite:tulip_multi-threaded_2006.
 - Certain modules within the engine serve only to produce or consume data. Several producers are user input and networking. Several consumers are sound and rendering cite:tulip_multi-threaded_2006.
-** Game Loop
-** Minimizing Work
-- Even in fully featured and popular game engines like Unity, most of the work is done in the rendering modules of the engine cite:messaoudi_dissecting_2015.  
-** Minimizing Allocations
-** Maximizing Spatial Locality
-* Parallelization For Free
-- There are several considerations to be taken when parallelizing the engine. First, the number of threads should be minimized to the number of cores available. Second, the creation and descrution of threads should be avoided while processing data. Third, the synchonization should be minimzed. And finally, the workload should be balanced across threads cite:tulip_multi-threaded_2006.
-- One of the main concerns in concurrent programming is the possibility of dead locks, a situation in which many seperate processes are waiting on eachother in a cycle for some resource. One technique to avoid dead locks is software transactional memory (STM). This methodology performs small, tasks which either complete successfuly or are rolled back. Atomicity, a name given to the previous features, is what allows for locking to be avoided all together using STM. Lock free data structures using STM are faster than their locking counterparts  cite:discolo_lock_2006.
-- The Intel white paper suggests breaking the code up into different managers and distributing tasks to various task managers on different treads. Tasks are created via messages between the different threads cite:andrews_designing_2009. 
-** Parallel Engine Components 
-** Parallelism in Haskell
-** Haskell STM
+- Even in fully featured and popular game engines like Unity, most of the work is done in the rendering modules of the engine cite:messaoudi_dissecting_2015.
+  
+* Achieving a Parallel Design 
+
+There are several considerations to be taken when parallelizing the engine. First, the number of threads should be minimized to the number of cores available. Second, the creation and descrution of threads should be avoided while processing data. Third, the synchonization should be minimzed. And finally, the workload should be balanced across threads cite:tulip_multi-threaded_2006.
+
+The Intel white paper suggests breaking the code up into different managers and distributing tasks to various task managers on different treads. Tasks are created via messages between the different threads cite:andrews_designing_2009. 
+
+One of the main concerns in concurrent programming is the possibility of dead locks, a situation in which many seperate processes are waiting on eachother in a cycle for some resource. One technique to avoid dead locks is software transactional memory (STM). This methodology performs small, tasks which either complete successfuly or are rolled back. Atomicity, a name given to the previous features, is what allows for locking to be avoided all together using STM. Lock free data structures using STM are faster than their locking counterparts  cite:discolo_lock_2006.
+
+With the growing interest in parallel computing, the functional programming paradigm has begun to make a resurgence. Functional programming focuses on describing computations use simple mappings from input values to output values which are composed to make larger programs. This style avoids many of the common pitfalls to normal parallel implementations where different tasks attempt to modify the same data at the same time. In a paradigm where data is not changed, these kinds of problems are eliminated completely.
+
+With those considerations in mind, the rest of the paper will attempt to design such a parallel engine using concepts from the programming language Haskell, which is a purely functional language. 
+
 * Feasability of design in large scale applications.
+- Functional reactive programming is a formal formal semantics of a reactive system based on two primative types, Bheaviours, Events, and a set of combinators for generating new values based on those primatives. A Behavior is a function from time to a value. An Event is a function from time to a possible value cite:wan_functional_2000.
 - Arrowized FRP can change how signals are processed without space leaks  cite:czaplicki_asynchronous_2013.
 - In their formulation of FRP, changes do not propogate unless a discrete event occurs cite:czaplicki_asynchronous_2013. This change, while unfaithful to the original semantics of FRP is much more suited for graphical interfaces due to that face that the user can only interact with the system in discrete ways. It goes without saying that the interaction model between the user and a game engine are the same as that of a normal graphical application, however this formulation can also extend to all types of events within the reactive system.
 - In his reformulation of the original FRP semantics, Elliott introduced the idea of reactive values and push-pull semantics to address the same performance issues. Reactive values allow for changes to certain values to be propogated or pushed through the system, leaving pull based updates to time dependent events. This change removes much of the wasteful updates caused in the original formulation cite:elliott_push-pull_2009.
-** Reactive Programming
-*** Programming With Time 
-*** Push - Pull frp
-- Perhaps using the pull option to prevent physics from being calculated for that object? Although, I'd have to figure out how to "remove" that object from the physics consideration, but then again, we'd have to build up the quad tree anyways, so not including it in that calculation might be possible.
-*** Scene Updates Through FRP
-*** Message Passing
-** Haxl
-*** Uses at facebook
-*** Data Sources
-*** Request caching
-** Fraxl
-*** Generalization of Haxl
-*** Using previous state as a data source
+- In a continuation formulation of FRP, behaviors can be modeled as transition functions which return how they will be have with each time delta. This is implemented as a function which transforms signals. The singals themselves are not first class, thus avoiding the performance loss. cite:nilsson_functional_2002.
+  
 * Making it Efficent
-- Generational garbage collection favors young objects cite:marlow_parallel_2008. 
-- Fusion allows for various intermediate data structures to be eliminated during compilation cite:bernardy_composable_2016.
-- Using recursion schemes as the basic building block of code allows for high fusability as they use a consumer producer mode. Anamorphisms are recursive producers and catamorphisms are recursive consumers cite:meijer_functional_1991.
-- Immutability allows for efficent checking of garbage in large structures cite:marlow_parallel_2008.
 ** Analyzing Time Complexity of Functional Data Structures
 *** Differences from normal data structures
 *** lazieness
@@ -66,9 +63,13 @@ Some more interesting stuff
 *** methods
 *** several useful datastructures for the game
 ** Garbage Collection in Haskell
+- Immutability allows for efficent checking of garbage in large structures cite:marlow_parallel_2008.
+- Generational garbage collection favors young objects cite:marlow_parallel_2008. 
 *** Reiterate problems with GC
 *** How to optimize for low GC in Haskell
 ** Fusion
+- Using recursion schemes as the basic building block of code allows for high fusability as they use a consumer producer mode. Anamorphisms are recursive producers and catamorphisms are recursive consumers cite:meijer_functional_1991.
+- Fusion allows for various intermediate data structures to be eliminated during compilation cite:bernardy_composable_2016.
 *** Consumer - Producer pattern
 *** Recursion Schemes
 *** Application to engine
@@ -83,7 +84,10 @@ Some more interesting stuff
 *** Linear Logic
 *** Implications on GC
 *** Application to engine
+
 * Conclusions
+
+By making use of modern research into functional programming languages, it appears possible to achieve a parallel game engine while maintaining an expressive system for designing games.
 
 bibliography:refs.bib
 bibliographystyle:unsrt
