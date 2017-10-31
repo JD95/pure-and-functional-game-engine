@@ -33,6 +33,7 @@ Some more interesting stuff
 * Parallelization For Free
 - There are several considerations to be taken when parallelizing the engine. First, the number of threads should be minimized to the number of cores available. Second, the creation and descrution of threads should be avoided while processing data. Third, the synchonization should be minimzed. And finally, the workload should be balanced across threads cite:tulip_multi-threaded_2006.
 - One of the main concerns in concurrent programming is the possibility of dead locks, a situation in which many seperate processes are waiting on eachother in a cycle for some resource. One technique to avoid dead locks is software transactional memory (STM). This methodology performs small, tasks which either complete successfuly or are rolled back. Atomicity, a name given to the previous features, is what allows for locking to be avoided all together using STM. Lock free data structures using STM are faster than their locking counterparts  cite:discolo_lock_2006.
+- The Intel white paper suggests breaking the code up into different managers and distributing tasks to various task managers on different treads. Tasks are created via messages between the different threads cite:andrews_designing_2009. 
 ** Parallel Engine Components 
 ** Parallelism in Haskell
 ** Haskell STM
@@ -55,6 +56,8 @@ Some more interesting stuff
 *** Using previous state as a data source
 * Making it Efficent
 - Generational garbage collection favors young objects cite:marlow_parallel_2008. 
+- Fusion allows for various intermediate data structures to be eliminated during compilation cite:bernardy_composable_2016.
+- Using recursion schemes as the basic building block of code allows for high fusability as they use a consumer producer mode. Anamorphisms are recursive producers and catamorphisms are recursive consumers cite:meijer_functional_1991.
 - Immutability allows for efficent checking of garbage in large structures cite:marlow_parallel_2008.
 ** Analyzing Time Complexity of Functional Data Structures
 *** Differences from normal data structures
