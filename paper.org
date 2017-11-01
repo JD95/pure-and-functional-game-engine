@@ -15,6 +15,7 @@
 
 * Abstract
 
+This paper addresses the limited capacity of modern game engines take advantage of multiple processors by applying techniques from purely functional languages to achieve a design which allows for parallelization by default.
 
 * Introduction
 
@@ -31,20 +32,18 @@ All graphical programs follow a similar flow in their execution. First, they wil
 
 Modern games have potentially thousands of complex entities within the game world, putting even more pressure on the engine to complete its tasks as soon as possible. Typical tactics to achieve speed involve special algorithms to try and minimize the actual work to do, minimizing the number of allocations made in system memory, and keeping related information closer in memory to optimize spatial locality. These techniques apply to multicore designs as well as single processor architectures. There are however, certain advantages that a multicore system would have over standard implementations today.
  
-- Several features which can be parallelized are: interpolation of animations, the application of lighting and textures, sound source contributions, rendering frames between updates cite:tulip_multi-threaded_2006.
-- Even in fully featured and popular game engines like Unity, most of the work is done in the rendering modules of the engine cite:messaoudi_dissecting_2015.
   
 * Achieving a Parallel Design 
 
 For two tasks to be run at the same time, their results must be independent of eachother. While data in a game engine flows through the system in a linear fashion, most of the time there are calculations which can be completed in parallel. For example, each unit of artificial intelligence within the system might be able to decide on its next action based solely on how the world was configured in the previous frame. In situations like this, each unit simply needs access to the previous state of the world and it can then be run at any time and in any order in relation to the other units. It turns out that most systems within the engine have this property. There are only two portions of the engine which are completely serial, the construction of the render tree and iteraction resolution cite:tulip_multi-threaded_2006.
 
-The render tree is a data structure which the rendering module uses to determine the order in which to draw elements to the screen. With certain visual effects, like transparency, the order of rendering matters. For instance, transparent objects must be rendered after other objects in the scene to achieve the transparency. Other effects might be rendered over multiple passes or require the pixels from the previous pass in order to render, like motion blurs. Because this process depends heavily on a serial ordering it is impossible to parallelize.
+The render tree is a data structure which the rendering module uses to determine the order in which to draw elements to the screen. With certain visual effects, like transparency, the order of rendering matters. For instance, transparent objects must be rendered after other objects in the scene to achieve the transparency. Other effects might be rendered over multiple passes or require the pixels from the previous pass in order to render, like motion blurs. Because this process depends heavily on a serial ordering it is impossible to parallelize, even in fully featured and popular game engines like Unity, most of the work is done in the rendering modules of the engine cite:messaoudi_dissecting_2015.
 
 Interaction resolution consists of resolving conflicting interactions between entities. This mostly occurs after the physics simulaiton where objects collide with eachother. The discrete nature of physics simultations allows for objects to temporarily interesect and thus must be corrected before the rest of the scene state may be calculated. Similar to rendering order, the results of future resolutions depend on previous ones, so this process cannot be parallelized. Beyond these two systems most of the remaining processes can incorperate some level of parallel execution. 
 
 There are several considerations to be taken when parallelizing the engine. First, the number of threads should be minimized to the number of cores available. Second, the creation and descrution of threads should be avoided while processing data. Third, the synchonization between threads should be minimzed. Finally, the workload should be balanced across threads cite:tulip_multi-threaded_2006.
 
-In his white paper, Andrews suggests divide the work of the engine between different managers and using them to generate and distribute tasks to various worker treads. These tasks are created via messages between the different managers. When the next frame is to be calculated, each manager would determine what work that subsystem needs to do, running entity scripts for example, and generate messages to other managers when needed. In this model, the managers serve as the main division of work amongst the different CPU cores. Balance across the various cores is achieved by only dividing the managers if there are enough threads to do so cite:andrews_designing_2009.
+Several features which can be parallelized are: interpolation of animations, the application of lighting and textures, sound source contributions, rendering frames between updates cite:tulip_multi-threaded_2006. These seperate tasks begin to outline different tasks within the engine. In his white paper, Andrews suggests divide the work of between different managers and using them to generate and distribute tasks to various worker treads. These tasks are created via messages between the different managers. When the next frame is to be calculated, each manager would determine what work that subsystem needs to do, running entity scripts for example, and generate messages to other managers when needed. In this model, the managers serve as the main division of work amongst the different CPU cores. Balance across the various cores is achieved by only dividing the managers if there are enough threads to do so cite:andrews_designing_2009.
 
 Although this design presents a simply method of converting existing architectures into parallel ones, there remains several challenges to overcome. One of the main concerns in concurrent programming is the possibility of dead locks, a situation in which many seperate processes are waiting on eachother in a cycle for some resource. While work is seperated between managers, there is no guarentee that each subsystem will not affect the data needed by other systems. In most programming langauges, there is no real restriction on what processes can modify, infact engines often take advantage of this to increase efficiency in some cases. When translating these modules into a parallel system, any data which would be used by different processes would have to be put under a lock, allowing only one thread to work with the data at any given time. If a thread needs to modify data which is currently locked, it can only wait until the lock is lifted. If the waiting queue for locks ever becomes cyclical, then the system stops because no work can be done, a dead lock. 
 
@@ -78,11 +77,9 @@ The game loop for a parallel engine can thus be described as a flow which takes 
 
 In this design, all entities can calculate their changes to themselves and the world in paralell and thus the workload can be balanced across the processors at a fine grained level. This is an improvement over the manager approach to parallelization in that managers were forced onto a single processor and unable to share their workloads with other managers which might have finished their tasks sooner.
   
-* Making it Efficent
+* Addressing Efficency Concerns 
 
-Although pure functional programming allows for expressivity and simple parallelization, there are performance costs which must be addressed. Pure code causes new allocations for every change or update to existing data. As an optimization to prevent such wasteful reallocation, most data structures are designed to share unchanged values between versions. For instnace, if a complex entity with many parts merely has a change to its health, only the value for the health needs to allocate a new value isntead of the entire unit. This style is only possible with a tree like structure in memory which causes problems for optimizing spatial locality. Reducing allocations is thus a main concern with a functional engine.
-
-The purity of a language allows for powerful optimizations done by the compiler, one of which is fusion.
+Although pure functional programming allows for expressivity and simple parallelization, there are performance costs which must be addressed. Pure code causes new allocations for every change or update to existing data. As an optimization to prevent such wasteful reallocation, most data structures are designed to share unchanged values between versions. For instnace, if a complex entity with many parts merely has a change to its health, only the value for the health needs to allocate a new value isntead of the entire unit. This style is only possible with a tree like structure in memory which causes problems for optimizing spatial locality. Reducing allocations is thus a main concern with a functional engine. The purity of a language allows for powerful optimizations done by the compiler, one of which is fusion.
 
 Fusion is the elimination of an intermidate data strcture like a list due to the properties of the functions. In the functional style, functions like map, fold, and filter are common tools used to manipulate data structures. Due to referential transparency, functions can be manipulated almost like algebreic expression in math where redundancies can be removed. In terms of fusion, there is a general pattern which allows for the intermediate structure to be eliminated.
 
@@ -97,11 +94,6 @@ Haskell uses a parallel generational garbage collection which Marlow et. al note
 Further optimzations can be made by making use of a technique called compact regions. Yang et. al desmonstrated that if an immutable structure has no references to data beyond its own, then the structure can be compressed into a contiguous region in memory cite:yang_efficient_2015. This optimization is vital to long lived data like the many character models, sound files, images, and terrain data that need to survive the length of a game. With this memeory loaded into a compact region, the garbage collector would only to need to check for a single reference to the region instead of having to sweap the entire structure. 
 
 More over, Yang et. al discovered that compact regions can be written directly to files or sent over the network with the internal pointers need simply be offset to match their new spot in memory  cite:yang_efficient_2015. This would be ideal for a game involving networking. Serialization is a expensive even in traditional programming languages.
-
-** Linear Types
-*** Linear Logic
-*** Implications on GC
-*** Application to engine
 
 * Conclusions
 
