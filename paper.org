@@ -32,7 +32,6 @@ All graphical programs follow a similar flow in their execution. First, they wil
 Modern games have potentially thousands of complex entities within the game world, putting even more pressure on the engine to complete its tasks as soon as possible. Typical tactics to achieve speed involve special algorithms to try and minimize the actual work to do, minimizing the number of allocations made in system memory, and keeping related information closer in memory to optimize spatial locality. These techniques apply to multicore designs as well as single processor architectures. There are however, certain advantages that a multicore system would have over standard implementations today.
  
 - Several features which can be parallelized are: interpolation of animations, the application of lighting and textures, sound source contributions, rendering frames between updates cite:tulip_multi-threaded_2006.
-- Certain modules within the engine serve only to produce or consume data. Several producers are user input and networking. Several consumers are sound and rendering cite:tulip_multi-threaded_2006.
 - Even in fully featured and popular game engines like Unity, most of the work is done in the rendering modules of the engine cite:messaoudi_dissecting_2015.
   
 * Achieving a Parallel Design 
@@ -59,37 +58,46 @@ There are two challenges going forward with a purely functional design that will
 
 * Feasability of design in large scale applications.
 
-- Functional reactive programming is a formal formal semantics of a reactive system based on two primative types, Bheaviours, Events, and a set of combinators for generating new values based on those primatives. A Behavior is a function from time to a value. An Event is a function from time to a possible value cite:wan_functional_2000.
-- Arrowized FRP can change how signals are processed without space leaks  cite:czaplicki_asynchronous_2013.
-- In their formulation of FRP, changes do not propogate unless a discrete event occurs cite:czaplicki_asynchronous_2013. This change, while unfaithful to the original semantics of FRP is much more suited for graphical interfaces due to that face that the user can only interact with the system in discrete ways. It goes without saying that the interaction model between the user and a game engine are the same as that of a normal graphical application, however this formulation can also extend to all types of events within the reactive system.
-- In his reformulation of the original FRP semantics, Elliott introduced the idea of reactive values and push-pull semantics to address the same performance issues. Reactive values allow for changes to certain values to be propogated or pushed through the system, leaving pull based updates to time dependent events. This change removes much of the wasteful updates caused in the original formulation cite:elliott_push-pull_2009.
-- In a continuation formulation of FRP, behaviors can be modeled as transition functions which return how they will be have with each time delta. This is implemented as a function which transforms signals. The singals themselves are not first class, thus avoiding the performance loss. cite:nilsson_functional_2002.
+Game engines are similar to most other graphical programs that users would interact with. Graphical application frameworks today take user input and allow for individual components of the application handle the inputs. An example would be a button which, when clicked, modifies the state of a pop up to be activated. This localized view of the system has several draw backs, but most important to the design of the engine, it obscures which entities have interactions with other entities. 
+
+In a functional paradigm where arbitrary modifications of data are not allowed, the reltations between different entities must be made explicit. As such, there is a movement towards so called "Reactive" systems which model the application like a circuit which information flows through to produce an output, the new displayed user interface. The functional approach to these semantics is aptly called, "Functional Reactive Programming" or FRP. In his formulation of FRP, Elliot defined the system based on two primative types, Bheaviours, Events, and a set of combinators for generating new values based on those primatives. 
+
+Elliot describes behaviors as functions from time to a value. An example of this would be a ball in the air whose height is dependent on time and the velocity of the ball. As time progresses, the hieght of the ball decreases. These behaviors can be used to create more behaviours which depend on other streams of values. And example of a more complex behavior would be an object in the virtual world which was dependent on the location of the player's mouse at any given time. Character animations also fall under the category of a behavior. As time progresses, the animation progresses one frame, changing the configuration of the model skeleton causing movement.
+
+An Event is a function from time to a possible value. The classic example of an event would be a mouse click. If one where to plot the function of an event it would remain mostly at zero until the event occured, which would be visiable as a small spike in the value before it returns to nothing. Events can be used to model discrete occurences within the system which are then used by behaviors to alter the interface cite:wan_functional_2000.
+
+Although FRP creates a rich and expressive style to model a game engine with, there are several performance issues with the semantics as originally defined. For instance, given that all values are dependent on time, all values within the system must be constantly recalculated, which causes large amounts of wastful work calculating values which have not changed. Another problem is that the original semantics also force all previous values for behaviors and events to be stored for the duration of the program. As time progresses, the memory usage slowly builds. This is unacceptable for a game engine, but there are other formulations of FRP which drastically reduce the problems with Elliot's initial design.
+
+In Czaplicki and Chong's formulation of FRP, changes do not propogate unless a discrete event occurs. This change, while unfaithful to the original semantics of FRP, is much more suited for graphical interfaces due to that face that the user can only interact with the system in discrete ways cite:czaplicki_asynchronous_2013. While certain systems would change continuously with time, like the physics simulation, the vast majority of components will only ever change with discrete events. This reduces the amount of recalculations needed.
+
+In his reformulation of the original FRP semantics, Elliott introduced the idea of reactive values and push-pull semantics to address the same performance issues. Reactive values allow for changes to certain values to be propogated or pushed through the system, leaving pull based updates to time dependent events. These reactive values allow for the same mental model for behaviors to be used without the performance loss cite:elliott_push-pull_2009.
+
+In Nilsson et. all's continuation formulation of FRP, behaviors can be modeled as transition functions which return how they will behave after a discrete time change. By removing behaviors as first class within the framework, the previous performance costs are reduced and the semantics of working with behaviors is simplified cite:nilsson_functional_2002.
+
+The game loop for a parallel engine can thus be described as a flow which takes user input, time, and the state of the world in the previous frame and then uses each as events and behaviors for calculating the next frame. A stream of messages can be used to model the communication of certain entities with eachother. These messages can be interpreted at a synchronization point before rendering which interprets the messages and uses STM to safely modfiy data or otherwise pass the message on to the next frame to be handled by the appropriate entities.
+
+In this design, all entities can calculate their changes to themselves and the world in paralell and thus the workload can be balanced across the processors at a fine grained level. This is an improvement over the manager approach to parallelization in that managers were forced onto a single processor and unable to share their workloads with other managers which might have finished their tasks sooner.
   
 * Making it Efficent
-** Analyzing Time Complexity of Functional Data Structures
-*** Differences from normal data structures
-*** lazieness
-*** purity
-*** methods
-*** several useful datastructures for the game
-** Garbage Collection in Haskell
-- Immutability allows for efficent checking of garbage in large structures cite:marlow_parallel_2008.
-- Generational garbage collection favors young objects cite:marlow_parallel_2008. 
-*** Reiterate problems with GC
-*** How to optimize for low GC in Haskell
-** Fusion
-- Using recursion schemes as the basic building block of code allows for high fusability as they use a consumer producer mode. Anamorphisms are recursive producers and catamorphisms are recursive consumers cite:meijer_functional_1991.
-- Fusion allows for various intermediate data structures to be eliminated during compilation cite:bernardy_composable_2016.
-*** Consumer - Producer pattern
-*** Recursion Schemes
-*** Application to engine
-** Compact Regions
-- Immutable data with no outgoing pointers is best suited for networking and serialization  cite:yang_efficient_2015.
-- Compact regions can be written directly to files or sent over the network. The internal pointers need simply be offset to match their new spot in memory  cite:yang_efficient_2015.
-- The property of no outgoing pointers means that only the top level reference to the structure need be checked during garbage collection  cite:yang_efficient_2015.
-*** What are compact regions
-*** How they're used
-*** Application to engine
+
+Although pure functional programming allows for expressivity and simple parallelization, there are performance costs which must be addressed. Pure code causes new allocations for every change or update to existing data. As an optimization to prevent such wasteful reallocation, most data structures are designed to share unchanged values between versions. For instnace, if a complex entity with many parts merely has a change to its health, only the value for the health needs to allocate a new value isntead of the entire unit. This style is only possible with a tree like structure in memory which causes problems for optimizing spatial locality. Reducing allocations is thus a main concern with a functional engine.
+
+The purity of a language allows for powerful optimizations done by the compiler, one of which is fusion.
+
+Fusion is the elimination of an intermidate data strcture like a list due to the properties of the functions. In the functional style, functions like map, fold, and filter are common tools used to manipulate data structures. Due to referential transparency, functions can be manipulated almost like algebreic expression in math where redundancies can be removed. In terms of fusion, there is a general pattern which allows for the intermediate structure to be eliminated.
+
+Meijer et. al formalized several recursion schemes which could replace normal recursion as the basic building block of functional programs. These recursion schemes were divided into two categories, anamorphisms, which produce new values and catamorphisms, which consume values. In general, it is the pairing of an anamorpic producer and a catamorphic consumer that allows for fusion to occur cite:meijer_functional_1991. Fusion can occur for any data structures, not just lists cite:bernardy_composable_2016.
+
+Certain modules within the engine serve only to produce or consume data. Several producers are user input and networking. Several consumers are sound and rendering cite:tulip_multi-threaded_2006. By modeling these systems with fusion in mind, we can eliminate unecessary allocations.
+
+Also unlike normal styles, functional programming languages rely on automatic garbage collection which freezes the program while unused memory is freed. While these times are relativtely short in most programs, the delay within the window of sixten miliseconds for game engines causes unacceptable framerate drops. Foretunately there are tactics with which to minimize or eliminate the need for garbage collection. 
+
+Haskell uses a parallel generational garbage collection which Marlow et. al note favors short lived data cite:marlow_parallel_2008. The generational garbage collector organizes memory such that younger objects are created in one location and gradually "age". When an older generation is collected so to are the generations younger than it. One added benifit of immutability is that it allows for efficent checking of garbage given that "old" data cannot reference new data. This means that when a younger generation is collected, the garbage collector can stop its sweap when it reaches data in an older generation cite:marlow_parallel_2008.
+
+Further optimzations can be made by making use of a technique called compact regions. Yang et. al desmonstrated that if an immutable structure has no references to data beyond its own, then the structure can be compressed into a contiguous region in memory cite:yang_efficient_2015. This optimization is vital to long lived data like the many character models, sound files, images, and terrain data that need to survive the length of a game. With this memeory loaded into a compact region, the garbage collector would only to need to check for a single reference to the region instead of having to sweap the entire structure. 
+
+More over, Yang et. al discovered that compact regions can be written directly to files or sent over the network with the internal pointers need simply be offset to match their new spot in memory  cite:yang_efficient_2015. This would be ideal for a game involving networking. Serialization is a expensive even in traditional programming languages.
+
 ** Linear Types
 *** Linear Logic
 *** Implications on GC
