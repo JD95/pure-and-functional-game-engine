@@ -3,9 +3,9 @@
 #+STARTUP: hidestar
 
 # paper meta 
-#+TITLE: A Pure and Functional Game Engine
+#+TITLE: A Pure and Parallel Game Engine
 #+AUTHOR: Jeffrey Dwyer
-#+DATE: 09/27/2017
+#+DATE: 11/01/2017
 #+OPTIONS: toc:nil
 
 # latex options
@@ -15,7 +15,7 @@
 
 * Abstract
 
-This paper addresses the limited capacity of modern game engines take advantage of multiple processors by applying techniques from purely functional languages to achieve a design which allows for parallelization by default.
+This paper addresses the limited capacity of modern game engines take advantage of multiple processors by applying techniques from purely functional languages to achieve a design which allows for parallelization by default. This design will then be structured using functional reactive programming and optimized using various techniques like compact regions and fusion.
 
 * Introduction
 
@@ -97,7 +97,7 @@ More over, Yang et. al discovered that compact regions can be written directly t
 
 * Conclusions
 
-By making use of modern research into functional programming languages, it appears possible to achieve a parallel game engine while maintaining an expressive system for designing games.
+By making use of modern research into functional programming languages, it appears possible to achieve a parallel game engine while maintaining an expressive system for designing games. Immutability and referential transparency make any process within the engine trivally parallelizable. The traditional game loop translates into a functional reactive framework which allows various updates within the world to be modeled in a consistent way. Using software transactional memory, updates to the game state can be made without the dangers of dead locks. Using techniques like fusion and compact regions, garbage collection can be minimized. 
 
 bibliography:refs.bib
 bibliographystyle:unsrt
