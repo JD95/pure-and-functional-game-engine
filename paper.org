@@ -11,11 +11,15 @@
 # latex options
 #+LATEX_HEADER: \usepackage[margin=1.0in]{geometry}
 #+LATEX_HEADER: \usepackage{apacite}
+#+LATEX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \usepackage{setspace}
 #+LATEX_HEADER: \linespread{2.0}
 #+LATEX_CLASS_OPTIONS: [12pt]
 
 \begin{abstract}
+
 This paper addresses the limited capacity of modern game engines take advantage of multiple processors by applying techniques from purely functional languages to achieve a design which allows for parallelization by default. This design will then be structured using functional reactive programming and optimized using various techniques like compact regions and fusion.
+
 \end{abstract}
 
 * Introduction
@@ -47,9 +51,50 @@ Several features which can be parallelized are: interpolation of animations, the
 
 Although this design presents a simply method of converting existing architectures into parallel ones, there remains several challenges to overcome. One of the main concerns in concurrent programming is the possibility of dead locks, a situation in which many seperate processes are waiting on eachother in a cycle for some resource. While work is seperated between managers, there is no guarentee that each subsystem will not affect the data needed by other systems. In most programming langauges, there is no real restriction on what processes can modify, infact engines often take advantage of this to increase efficiency in some cases. When translating these modules into a parallel system, any data which would be used by different processes would have to be put under a lock, allowing only one thread to work with the data at any given time. If a thread needs to modify data which is currently locked, it can only wait until the lock is lifted. If the waiting queue for locks ever becomes cyclical, then the system stops because no work can be done, a dead lock. 
 
-One technique to avoid dead locks is software transactional memory (STM). This methodology performs small, reversable tasks which either complete successfuly or are rolled back. Atomicity, a name given to the previous features, is what allows for normal locking to be avoided all together using STM. Lock free data structures using STM are faster than their locking counterparts, however programming using STM is complex in languages that do not directly support it cite:discolo_lock_2006. These challenges are not unique to game engines and their solution may come from a more general approach to making parallel design easy.
+One technique to avoid dead locks is software transactional memory (STM). This methodology performs small, reversable tasks which either complete successfuly or are rolled back. Atomicity, a name given to the previous features, is what allows for normal locking to be avoided all together using STM. Lock free data structures using STM are faster than their locking counterparts, however programming using STM is complex in languages that do not directly support it cite:discolo_lock_2006. These challenges are not unique to game engines and their solution may come from a more general approach to simplifying parallel design.
 
-With the growing interest in parallel computing, the functional programming paradigm has made a resurgence. Functional programming differentiates itself from the currently popular imperative paradigm by not structuring programs as a series of steps for the computer to take, but rather as descriptions simple mappings from input values to output values which are composed to make larger programs. So rather than directly manipulating data which the user creates and destroys, the programmer instead assumes that data cannot be changed and creates new data with changed values. While this approach seems clumbersome at first, this style allows for clearer and more easily optimized code.
+** Functional Programming
+
+Functional programming naturally lends itself to parallel computing given the semantic differences from normal programming styles. Instead of building a system using a series of steps, programs can be thought of as a series of almost algebreic expressions. For example, the classic quicksort algorithm's semantics are obscured in languages like C.
+
+\begin{spacing}{0.5}
+\begin{lstlisting}[language=C, caption=Quicksort in C]
+void quicksort(int *A, int len) {
+  if (len < 2) return;
+ 
+  int pivot = A[len / 2];
+ 
+  int i, j;
+  for (i = 0, j = len - 1; ; i++, j--) {
+    while (A[i] < pivot) i++;
+    while (A[j] > pivot) j--;
+ 
+    if (i >= j) break;
+ 
+    int temp = A[i];
+    A[i]     = A[j];
+    A[j]     = temp;
+  }
+
+  quicksort(A, i);
+  quicksort(A + i, len - i);
+}
+\end{lstlisting} 
+\clearpage
+
+In functional languages like Haskell, these ideas can be expressed concisely.
+
+\begin{lstlisting}[language=Haskell, caption=Quicksort in Haskell] 
+qsort :: Ord a => [a] -> [a]
+qsort [] = []
+qsort (x:xs) = qsort ys ++ x : qsort zs
+  where
+    (ys, zs) = partition (< x) xs
+
+\end{lstlisting}
+\end{spacing}
+
+\vspace{5mm}
 
 More importantly, if the default semantics of the program is immutability, then even if the program was run in parallel, data shared between threads would never be modified by default. This allows the programmer to have a much finer grained control over when locking is needed. Moreover, given that all functions only depend on their input to computer their output, so long as the input is available for a function it can be run in parallel with anything else. Parallelism in this paradigm becomes almost trivial and is thus an ideal framework with which to structure the rest of the engine. To make the design more concrete, the rest of the paper will use the language Haskell to describe the different components of the engine as it forces a pure functional style. 
 
