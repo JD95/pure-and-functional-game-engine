@@ -89,17 +89,32 @@ qsort :: Ord a => [a] -> [a]
 qsort [] = []
 qsort (x:xs) = qsort ys ++ x : qsort zs
   where
-    (ys, zs) = partition (< x) xs
+    (ys, zs) = partition (< x) xs 
 
 \end{lstlisting}
 \end{spacing}
 
 \vspace{5mm}
 
-More importantly, if the default semantics of the program is immutability, then even if the program was run in parallel, data shared between threads would never be modified by default. This allows the programmer to have a much finer grained control over when locking is needed. Moreover, given that all functions only depend on their input to computer their output, so long as the input is available for a function it can be run in parallel with anything else. Parallelism in this paradigm becomes almost trivial and is thus an ideal framework with which to structure the rest of the engine. To make the design more concrete, the rest of the paper will use the language Haskell to describe the different components of the engine as it forces a pure functional style. 
+The differences are not only visual, the semantics of the language itself are simpler. One of the main challenges with programming is keeping track of how the state application changes throughout execution. These changes could be updates to values like a name or whether a button is turned on or off. Typical languages like C allow the user to change program state anywhere at anytime, which causes problems when trying to run tasks in parallel. Pure functional languages prevent the user from expressing state updates, prefering to simply create new state with the updated value rather than overriding the previous state. If a program is merely a series of expressions which depend only on their inputs and cannot modify values, then parallelization is trivial.
 
-There are two challenges going forward with a purely functional design that will be addressed by the next two sections. First, the drastic change in programming semantics between normal languages and Haskell requires that conventional designs for a game engine be reworked to accomodate immutability and take advantage of properties like strong types and first class functions. Second, languages like Haskell do not allow the same kind of control over memory as languages like C do, and the ineffiencies caused by artifacts like garbage control and data indirection must be addressed to achieve the performance necessary for standard game engines.
+\begin{spacing}{0.5}
+\begin{lstlisting}[language=Haskell, caption=Parallel Quicksort in Haskell] 
+qsort :: Ord a => [a] -> [a]
+qsort [] = []
+qsort (x:xs) = (qsort ys `using` reseq) ++ x : (qsort zs `using` rseq)
+  where
+    ys = filter (< x) xs `using` rseq
+    zs = filter (>= x) xs `using` rseq
 
+\end{lstlisting}
+\end{spacing}
+\vspace{5mm}
+
+The example above will now partition the list and then sort the two halves in parallel at each step in the algorithm. This is only possible because the original Haskell implementation never actually modifies the original list, instead it creates a new list which is sorted. While this solves one problem, it caues another because creating new values for ever calculation comes at a cost which is unacceptable in programs like game engines where every ounce of speed is needed. Another issue is that functional languages, Haskell included, manage their memeory using automatic processes called garbage collection. Every so often, the program will be paused so memory which is no longer needed can be freeded. Again, these types of delays prevent the kind of performance needed by modern video games. 
+
+The rest of this paper will address redesigning the structure of a typical game engine to fit a functional style and then cover various techniques for reducing or eliminating the performance concerns of this style.
+ 
 * Feasability of design in large scale applications.
 
 Game engines are similar to most other graphical programs that users would interact with. Graphical application frameworks today take user input and allow for individual components of the application handle the inputs. An example would be a button which, when clicked, modifies the state of a pop up to be activated. This localized view of the system has several draw backs, but most important to the design of the engine, it obscures which entities have interactions with other entities. 
@@ -110,6 +125,11 @@ Elliot describes behaviors as functions from time to a value. An example of this
 
 An Event is a function from time to a possible value. The classic example of an event would be a mouse click. If one where to plot the function of an event it would remain mostly at zero until the event occured, which would be visiable as a small spike in the value before it returns to nothing. Events can be used to model discrete occurences within the system which are then used by behaviors to alter the interface cite:wan_functional_2000.
 
+#+CAPTION: A reactive network for unit position
+[[./frp-unit-example.png]]
+
+In the above example, we can see two behaviors, the player unit's position and the alarm's position. Over time, the player's position will change which causes the active state of the alarm to be recalculated. Here, the difference between the player's position and the alarm is calcuated and then that result is checked to see if it is less than five. The alarm triggering can be considered an event since it only occurs at discrete points in time.
+ 
 Although FRP creates a rich and expressive style to model a game engine with, there are several performance issues with the semantics as originally defined. For instance, given that all values are dependent on time, all values within the system must be constantly recalculated, which causes large amounts of wastful work calculating values which have not changed. Another problem is that the original semantics also force all previous values for behaviors and events to be stored for the duration of the program. As time progresses, the memory usage slowly builds. This is unacceptable for a game engine, but there are other formulations of FRP which drastically reduce the problems with Elliot's initial design.
 
 In Czaplicki and Chong's formulation of FRP, changes do not propogate unless a discrete event occurs. This change, while unfaithful to the original semantics of FRP, is much more suited for graphical interfaces due to that face that the user can only interact with the system in discrete ways cite:czaplicki_asynchronous_2013. While certain systems would change continuously with time, like the physics simulation, the vast majority of components will only ever change with discrete events. This reduces the amount of recalculations needed.
