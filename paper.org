@@ -10,12 +10,13 @@
 
 # latex options
 #+LATEX_HEADER: \usepackage[margin=1.0in]{geometry}
+#+LATEX_HEADER: \usepackage{apacite}
 #+LATEX_HEADER: \linespread{2.0}
 #+LATEX_CLASS_OPTIONS: [12pt]
 
-* Abstract
-
+\begin{abstract}
 This paper addresses the limited capacity of modern game engines take advantage of multiple processors by applying techniques from purely functional languages to achieve a design which allows for parallelization by default. This design will then be structured using functional reactive programming and optimized using various techniques like compact regions and fusion.
+\end{abstract}
 
 * Introduction
 
@@ -32,7 +33,6 @@ All graphical programs follow a similar flow in their execution. First, they wil
 
 Modern games have potentially thousands of complex entities within the game world, putting even more pressure on the engine to complete its tasks as soon as possible. Typical tactics to achieve speed involve special algorithms to try and minimize the actual work to do, minimizing the number of allocations made in system memory, and keeping related information closer in memory to optimize spatial locality. These techniques apply to multicore designs as well as single processor architectures. There are however, certain advantages that a multicore system would have over standard implementations today.
  
-  
 * Achieving a Parallel Design 
 
 For two tasks to be run at the same time, their results must be independent of eachother. While data in a game engine flows through the system in a linear fashion, most of the time there are calculations which can be completed in parallel. For example, each unit of artificial intelligence within the system might be able to decide on its next action based solely on how the world was configured in the previous frame. In situations like this, each unit simply needs access to the previous state of the world and it can then be run at any time and in any order in relation to the other units. It turns out that most systems within the engine have this property. There are only two portions of the engine which are completely serial, the construction of the render tree and iteraction resolution cite:tulip_multi-threaded_2006.
@@ -99,5 +99,6 @@ More over, Yang et. al discovered that compact regions can be written directly t
 
 By making use of modern research into functional programming languages, it appears possible to achieve a parallel game engine while maintaining an expressive system for designing games. Immutability and referential transparency make any process within the engine trivally parallelizable. The traditional game loop translates into a functional reactive framework which allows various updates within the world to be modeled in a consistent way. Using software transactional memory, updates to the game state can be made without the dangers of dead locks. Using techniques like fusion and compact regions, garbage collection can be minimized. 
 
+
 bibliography:refs.bib
-bibliographystyle:unsrt
+bibliographystyle:apacite
