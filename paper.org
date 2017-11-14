@@ -45,6 +45,8 @@ The render tree is a data structure which the rendering module uses to determine
 
 Interaction resolution consists of resolving conflicting interactions between entities. This mostly occurs after the physics simulaiton where objects collide with eachother. The discrete nature of physics simultations allows for objects to temporarily interesect and thus must be corrected before the rest of the scene state may be calculated. Similar to rendering order, the results of future resolutions depend on previous ones, so this process cannot be parallelized. Beyond these two systems most of the remaining processes can incorperate some level of parallel execution. 
 
+** Applying Parallelism
+
 There are several considerations to be taken when parallelizing the engine. First, the number of threads should be minimized to the number of cores available. Second, the creation and descrution of threads should be avoided while processing data. Third, the synchonization between threads should be minimzed. Finally, the workload should be balanced across threads cite:tulip_multi-threaded_2006.
 
 Several features which can be parallelized are: interpolation of animations, the application of lighting and textures, sound source contributions, rendering frames between updates cite:tulip_multi-threaded_2006. These seperate tasks begin to outline different tasks within the engine. In his white paper, Andrews suggests divide the work of between different managers and using them to generate and distribute tasks to various worker treads. These tasks are created via messages between the different managers. When the next frame is to be calculated, each manager would determine what work that subsystem needs to do, running entity scripts for example, and generate messages to other managers when needed. In this model, the managers serve as the main division of work amongst the different CPU cores. Balance across the various cores is achieved by only dividing the managers if there are enough threads to do so cite:andrews_designing_2009.
@@ -55,7 +57,23 @@ One technique to avoid dead locks is software transactional memory (STM). This m
 
 ** Functional Programming
 
-Functional programming naturally lends itself to parallel computing given the semantic differences from normal programming styles. Instead of building a system using a series of steps, programs can be thought of as a series of almost algebreic expressions. For example, the classic quicksort algorithm's semantics are obscured in languages like C.
+In his turing award lecture, John Backus posed the question of whether programming languages could grow out of their trend of becoming larger, but not more expressive. He noted that the many change parts of existing languages have little to no expressive power, thus leading to so many features being built into the langauge itself. These properities make such languages difficult to reason about. He concluded by proposing functional programming as an alternative cite:backus_can_1978. 
+
+Functional programming is a model of computation based on the Lambda Calculus of Alonzo Church and naturally lends itself to parallel computing given the semantic differences from normal programming styles. Instead of building a system using a series of steps, programs can be thought of as a series of almost algebreic expressions.
+
+\begin{spacing}{0.5}
+\begin{lstlisting}[langauge=Haskell, caption=Example of lambda evaluation]
+
+(\lambda x. \lambda y. add x y) 5 6
+(\lambda y. add 5 y) 6
+(add 5 6)
+11 
+
+\end{lstlisting}
+\end{spacing}
+
+
+Semantically, lambda calculus evaluates programs by replacing input symbols with their input. In traditional languages this is achieved by "passing" values as parameters into functions. Unlike traditional languages, the entire structure of a functional program is built with lambda expressions. The runtime of such a language differs drastically from langauges like C, with the order of evaluation taken out of the hands of the programmer. In modern langauges like Haskell, this leads to far simpler programs. For example, the classic quicksort algorithm's semantics are obscured in languages like C.
 
 \begin{spacing}{0.5}
 \begin{lstlisting}[language=C, caption=Quicksort in C]
@@ -79,11 +97,13 @@ void quicksort(int *A, int len) {
   quicksort(A, i);
   quicksort(A + i, len - i);
 }
-\end{lstlisting} 
-\clearpage
+\end{lstlisting}
+\end{spacing} 
+\vspace{5mm}
 
-In functional languages like Haskell, these ideas can be expressed concisely.
+However, in languages like Haskell, the semantics of the algorithm can be expressed directly in an almost mathematical definition. The left side of the equation is the name of the function and it's inputs with the resulting expression on the right, much like a funciton in algebra. This maps to the parenthized form of lambdas shown before.
 
+\begin{spacing}{0.5}
 \begin{lstlisting}[language=Haskell, caption=Quicksort in Haskell] 
 qsort :: Ord a => [a] -> [a]
 qsort [] = []
@@ -93,10 +113,14 @@ qsort (x:xs) = qsort ys ++ x : qsort zs
 
 \end{lstlisting}
 \end{spacing}
-
 \vspace{5mm}
 
-The differences are not only visual, the semantics of the language itself are simpler. One of the main challenges with programming is keeping track of how the state application changes throughout execution. These changes could be updates to values like a name or whether a button is turned on or off. Typical languages like C allow the user to change program state anywhere at anytime, which causes problems when trying to run tasks in parallel. Pure functional languages prevent the user from expressing state updates, prefering to simply create new state with the updated value rather than overriding the previous state. If a program is merely a series of expressions which depend only on their inputs and cannot modify values, then parallelization is trivial.
+The differences are not only visual, the semantics of the language itself are simpler. One of the main challenges with programming is keeping track of how the state application changes throughout execution. These changes could be updates to values like a name or whether a button is turned on or off. Typical languages like C allow the user to change program state anywhere at anytime, which causes problems when trying to run tasks in parallel. 
+
+#+CAPTION: The Quicksort function as a graph
+[[./function-graph-example.png]]
+
+Functional languages can represent each computation as a graph. Because there is no dependencies on state between any of the leaves in such graphs, each can be evaluated and reduced in any order or at the same time. It is this property which makes langauges like Haskell so easy to run in parallel. Most programs need only a small annotation to indicate that the expression should be evaluated at the same time as the others.
 
 \begin{spacing}{0.5}
 \begin{lstlisting}[language=Haskell, caption=Parallel Quicksort in Haskell] 
@@ -111,11 +135,11 @@ qsort (x:xs) = (qsort ys `using` reseq) ++ x : (qsort zs `using` rseq)
 \end{spacing}
 \vspace{5mm}
 
-The example above will now partition the list and then sort the two halves in parallel at each step in the algorithm. This is only possible because the original Haskell implementation never actually modifies the original list, instead it creates a new list which is sorted. While this solves one problem, it caues another because creating new values for ever calculation comes at a cost which is unacceptable in programs like game engines where every ounce of speed is needed. Another issue is that functional languages, Haskell included, manage their memeory using automatic processes called garbage collection. Every so often, the program will be paused so memory which is no longer needed can be freeded. Again, these types of delays prevent the kind of performance needed by modern video games. 
+While this solves one problem, it caues another because creating new values for ever calculation comes at a cost which is unacceptable in programs like game engines where every ounce of speed is needed. Another issue is that functional languages, Haskell included, manage their memeory using automatic processes called garbage collection. Every so often, the program will be paused so memory which is no longer needed can be freeded. Again, these types of delays prevent the kind of performance needed by modern video games. 
 
 The rest of this paper will address redesigning the structure of a typical game engine to fit a functional style and then cover various techniques for reducing or eliminating the performance concerns of this style.
  
-* Feasability of design in large scale applications.
+* Representing the game loop using functional reactive programming 
 
 Game engines are similar to most other graphical programs that users would interact with. Graphical application frameworks today take user input and allow for individual components of the application handle the inputs. An example would be a button which, when clicked, modifies the state of a pop up to be activated. This localized view of the system has several draw backs, but most important to the design of the engine, it obscures which entities have interactions with other entities. 
 
@@ -127,6 +151,8 @@ An Event is a function from time to a possible value. The classic example of an 
 
 #+CAPTION: A reactive network for unit position
 [[./frp-unit-example.png]]
+
+** Alnterative and Improved formulations of FRP
 
 In the above example, we can see two behaviors, the player unit's position and the alarm's position. Over time, the player's position will change which causes the active state of the alarm to be recalculated. Here, the difference between the player's position and the alarm is calcuated and then that result is checked to see if it is less than five. The alarm triggering can be considered an event since it only occurs at discrete points in time.
  
@@ -146,6 +172,8 @@ In this design, all entities can calculate their changes to themselves and the w
 
 Although pure functional programming allows for expressivity and simple parallelization, there are performance costs which must be addressed. Pure code causes new allocations for every change or update to existing data. As an optimization to prevent such wasteful reallocation, most data structures are designed to share unchanged values between versions. For instnace, if a complex entity with many parts merely has a change to its health, only the value for the health needs to allocate a new value isntead of the entire unit. This style is only possible with a tree like structure in memory which causes problems for optimizing spatial locality. Reducing allocations is thus a main concern with a functional engine. The purity of a language allows for powerful optimizations done by the compiler, one of which is fusion.
 
+** Fusion
+
 Fusion is the elimination of an intermidate data strcture like a list due to the properties of the functions. In the functional style, functions like map, fold, and filter are common tools used to manipulate data structures. Due to referential transparency, functions can be manipulated almost like algebreic expression in math where redundancies can be removed. In terms of fusion, there is a general pattern which allows for the intermediate structure to be eliminated.
 
 Meijer et. al formalized several recursion schemes which could replace normal recursion as the basic building block of functional programs. These recursion schemes were divided into two categories, anamorphisms, which produce new values and catamorphisms, which consume values. In general, it is the pairing of an anamorpic producer and a catamorphic consumer that allows for fusion to occur cite:meijer_functional_1991. Fusion can occur for any data structures, not just lists cite:bernardy_composable_2016.
@@ -154,11 +182,31 @@ Certain modules within the engine serve only to produce or consume data. Several
 
 Also unlike normal styles, functional programming languages rely on automatic garbage collection which freezes the program while unused memory is freed. While these times are relativtely short in most programs, the delay within the window of sixten miliseconds for game engines causes unacceptable framerate drops. Foretunately there are tactics with which to minimize or eliminate the need for garbage collection. 
 
+** Minimizing Garbage Collection
+
 Haskell uses a parallel generational garbage collection which Marlow et. al note favors short lived data cite:marlow_parallel_2008. The generational garbage collector organizes memory such that younger objects are created in one location and gradually "age". When an older generation is collected so to are the generations younger than it. One added benifit of immutability is that it allows for efficent checking of garbage given that "old" data cannot reference new data. This means that when a younger generation is collected, the garbage collector can stop its sweap when it reaches data in an older generation cite:marlow_parallel_2008.
 
 Further optimzations can be made by making use of a technique called compact regions. Yang et. al desmonstrated that if an immutable structure has no references to data beyond its own, then the structure can be compressed into a contiguous region in memory cite:yang_efficient_2015. This optimization is vital to long lived data like the many character models, sound files, images, and terrain data that need to survive the length of a game. With this memeory loaded into a compact region, the garbage collector would only to need to check for a single reference to the region instead of having to sweap the entire structure. 
 
 More over, Yang et. al discovered that compact regions can be written directly to files or sent over the network with the internal pointers need simply be offset to match their new spot in memory  cite:yang_efficient_2015. This would be ideal for a game involving networking. Serialization is a expensive even in traditional programming languages.
+
+** Eliminating Garbage collection
+
+A linear type system is one which forces all values to be used and used only once cite:wadler_linear_1990.
+
+\begin{spacing}{0.5}
+\begin{lstlisting}[language=Haskell]
+
+f x = (x,x) -- Error! Cannot duplicate value! 
+f x y = x   -- Error! Value 'x' not used!
+
+\end{lstlisting}
+\end{spacing}
+
+Bernardy et. al found that linear type systems could be added to existing, lazy languages like Haskell without modification to existing functions. This addition allows for O(1) updates to the value instead of an O(n) copy cite:bernardy_linear_2017. Linear values would reduce the amount of memory used by the program and thus reduce garbage collection.
+
+Lafont used linear types to develop a language which used a mixture of strict and lazy evaluation without garbage collection cite:lafont_linear_1988.
+
 
 * Conclusions
 
