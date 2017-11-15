@@ -13,6 +13,7 @@
 #+LATEX_HEADER: \usepackage{apacite}
 #+LATEX_HEADER: \usepackage{listings}
 #+LATEX_HEADER: \usepackage{setspace}
+#+LATEX_HEADER: \usepackage{appendix}
 #+LATEX_HEADER: \linespread{2.0}
 #+LATEX_CLASS_OPTIONS: [12pt]
 
@@ -230,3 +231,31 @@ By making use of modern research into functional programming languages, it appea
 
 bibliography:refs.bib
 bibliographystyle:apacite
+
+\begin{appendices}
+
+* Experimental Plan
+
+This paper outlines a possible design for a game engine designed for parallel execution. In order to measure the effectiveness of the design, a prototype implementation would be needed. The prototype would be subject to several benchmarking and performance profiling techniques.
+
+** Data to be collected
+
+There are several dimensions of game engine performance. CPU usage is measured in units of time a process spends working on the processing unit. This measurement does not include kernal interrupts. Given the nature of a parallel engine, the CPU metric would be extended to total utilization over multiple cores. RAM usuage is measured in storage units of megabytes. Frames per second is a measure of how quickly the engine can render the next frame. Each of these dimensions will be measured over a period of time. 
+
+** Equipment needed
+
+These test will be run on several machines with different CPUs. Several multi-core architectures will be tested, ranging from dual core to eight core chipsets from both Intel and AMD.
+
+** Research Methods
+
+There will be three tests:
+- Simulation of 40,000 particles.
+- Simulation of 1,000 animated entities with 50,000 polygons each.
+
+Partical simulations help test the performance of an engine with a shear number of simple entities. 40,000 particles is the current industry standard for these kinds of tests. The animated entity test measures how well the engine can handle high amounts of vertex information within a scene. The high memory load will test how much the system needs to garbage collect.
+
+The performance results of the prototype engine will be compared to the performance of similar tests run in both the Unreal and Unity engines. Each test will run its simulation for roughly a minute and will be repeated several hundred times to allow for statistical analysis. Frames per second will be outputed by the engine itseslf, RAM usage will be monitored using system tools on the test systems, and CPU usage will be measured using the program Threadscope.
+
+The results will be averaged for each machine and the results will be analyzed to see how the performance changes as the number of cores increases and compared between the two chip architectures.
+
+\end{appendices}
