@@ -17,6 +17,11 @@
 #+LATEX_HEADER: \linespread{2.0}
 #+LATEX_CLASS_OPTIONS: [12pt]
 
+* TODO Check paragraph transitions
+** TODO Future Work Section
+** TODO Condense FRP section for more explanation of FP
+** TODO Water down concepts
+* Paper
 \begin{abstract}
 
 This paper addresses the limited capacity of modern game engines take advantage of multiple processors by applying techniques from purely functional languages to achieve a design which allows for parallelization by default. This design will then be structured using functional reactive programming and optimized using various techniques like compact regions and fusion.
@@ -63,49 +68,9 @@ One technique to avoid dead locks is software transactional memory (STM). This m
 
 In his Turing award lecture, John Backus posed the question of whether programming languages could grow out of their trend of becoming larger, but not more expressive. He noted that the many changeable parts of existing languages have little to no expressive power, thus leading to many features being built into the language itself. These properties make such languages difficult to reason about. He concluded by proposing functional programming as an alternative cite:backus_can_1978. 
 
-Functional programming is a model of computation based on the Lambda Calculus of Alonzo Church and naturally lends itself to parallel computing given the semantic differences from normal programming styles cite:backus_can_1978. Instead of building a system using a series of steps, programs can be thought of as a series of almost algebraic expressions.
+Functional programming is a model of computation based on the Lambda Calculus of Alonzo Church and naturally lends itself to parallel computing given the semantic differences from normal programming styles cite:backus_can_1978. Instead of building a system using a series of steps, programs can be thought of as a series of almost algebraic expressions. So long as certain rules are followed, it does not matter in what order the sub-expressions are evaluated. In fact, by default the order of evaluation taken out of the hands of the programmer cite:jones_implementing_1993. This is desirable for parallel execution in that almost any sub-expression can be calculated independently. 
 
-\begin{spacing}{0.5}
-\begin{lstlisting}[language=Haskell, caption=Example of lambda evaluation]
-
-(\lambda x. \lambda y. add x y) 5 6
-(\lambda y. add 5 y) 6
-(add 5 6)
-11 
-
-\end{lstlisting}
-\end{spacing}
-
-
-Semantically, lambda calculus evaluates programs by replacing input symbols with their input. In traditional languages this is achieved by "passing" values as parameters into functions. Unlike such languages, the entire structure of a functional program is built within nested lambda expressions. The runtime of such a language differs drastically from languages like C, with the order of evaluation taken out of the hands of the programmer cite:jones_implementing_1993. In functional languages like Haskell, this leads to far simpler programs. For example, the classic quicksort algorithm's semantics are obscured in languages like C.
-
-\begin{spacing}{0.5}
-\begin{lstlisting}[language=C, caption=Quicksort in C]
-void quicksort(int *A, int len) {
-  if (len < 2) return;
- 
-  int pivot = A[len / 2];
- 
-  int i, j;
-  for (i = 0, j = len - 1; ; i++, j--) {
-    while (A[i] < pivot) i++;
-    while (A[j] > pivot) j--;
- 
-    if (i >= j) break;
- 
-    int temp = A[i];
-    A[i]     = A[j];
-    A[j]     = temp;
-  }
-
-  quicksort(A, i);
-  quicksort(A + i, len - i);
-}
-\end{lstlisting}
-\end{spacing} 
-\vspace{5mm}
-
-However, in languages like Haskell, the semantics of the algorithm can be expressed directly in an almost mathematical definition. The left side of the equation is the name of the function and it's inputs with the resulting expression on the right, much like a function in algebra. This maps to the parenthesized form of lambdas shown before.
+For example, the classic quicksort algorithm sorts a list by dividing the list in to paritions and sorting those. Once the lsit has been divided, the two paritions can be sorted in parallel.
 
 \begin{spacing}{0.5}
 \begin{lstlisting}[language=Haskell, caption=Quicksort in Haskell] 
@@ -119,12 +84,12 @@ qsort (x:xs) = qsort ys ++ x : qsort zs
 \end{spacing}
 \vspace{5mm}
 
-The differences are not only visual, the semantics of the language itself are simpler. One of the main challenges with programming is keeping track of how the state application changes throughout execution. These changes could be updates to values like a name or whether a button is turned on or off. Typical languages like C allow the user to change program state anywhere at anytime, which causes problems when trying to run tasks in parallel. 
+The above is an implementation of quicksort in Haskell. A given list is split into partitions (ys and zs) and then those paritions are also quicksorted. By default, the sorting will happen in sequence, with one half completing before the other half is worked on. However, given the nature of functional languages, we do not have to think of the process as a series of steps, but rather as a graph of expressions to evaluate.
 
 #+CAPTION: The Quicksort function as a graph
 [[./function-graph-example.png]]
 
-Functional languages can represent each computation as a graph. Because there are no dependencies on state between any of the leaves in such graphs, each can be evaluated and reduced in any order or at the same time. It is this property which makes languages like Haskell so easy to run in parallel. Most programs need only a small annotation to indicate that the expression should be evaluated at the same time as the others.
+Because there are no dependencies on state between any of the leaves in such graphs, each can be evaluated and reduced in any order or at the same time. It is this property which makes languages like Haskell so easy to run in parallel. Most programs need only a small annotation to indicate that the expression should be evaluated at the same time as the others as shown below.
 
 \begin{spacing}{0.5}
 \begin{lstlisting}[language=Haskell, caption=Parallel Quicksort in Haskell] 
@@ -139,42 +104,50 @@ qsort (x:xs) = (qsort ys `using` reseq) ++ x : (qsort zs `using` rseq)
 \end{spacing}
 \vspace{5mm}
 
-While this solves one problem, it causes another in that creating new values for every calculation comes at a cost which is unacceptable in programs like game engines. It takes more time to create new data than it does to update existing data. Another issue is that functional languages, Haskell included, manage their memory using automatic processes called garbage collection. Every so often, the program will be paused so memory which is no longer needed can be freed. Again, these types of delays prevent the kind of performance needed by modern video games. 
+Because these values are immutable, the original list is not being sorted, rather a new, in order list is being created. This is problematic as it takes more time to create new data than it does to update existing data. Another issue is that functional languages, Haskell included, manage their memory using automatic processes called garbage collection. Every so often, the program will be paused so memory which is no longer needed can be freed. Again, these types of delays prevent the kind of performance needed by modern video games. 
 
-The rest of this paper will address redesigning the structure of a typical game engine to fit a functional style and then cover various techniques for reducing or eliminating the performance concerns of this style.
- 
+For this solution to the parallelization problem to be useful, two issues must be considered. First, can functional languages describe complex graphical systems like game engines with at least the same amount of effort as normal languages? Second, can a functional engine be as performant as engines written in traditional languages like C and C++?
+
+The second challenge will be addressed using several optimization techniques to minimize and eliminate the creation of new data, increase spatial locality, and minimize or eliminate garbage collection. While the execution of functional languages is different at high level, the goals of optimization remain the same. 
+
+The first challenge will be addressed using research into graphical interfaces designed in the functional style. In many ways game engines behave identically to normal graphics applications like excel or internet browsers cite:tulip_multi-threaded_2006. Any techniques used to create these kinds of graphical application can also be used in game engine design.
+
 * Representing the game loop using functional reactive programming 
 
-Game engines are similar to most other graphical programs that users would interact with cite:tulip_multi-threaded_2006. Graphical application frameworks today take user input and allow for individual components of the application handle the inputs. An example would be a button which, when clicked, modifies the state of a pop up to be activated. This localized view of the system has several draw backs, but most important to the design of the engine, it obscures which entities have interactions with other entities. 
+Graphical application frameworks today take user input and allow for individual components of the application handle. An example would be a button which, when clicked, modifies the state of a pop up to be visible. In a functional paradigm, where arbitrary modifications of data are not allowed, the relations between different entities must be made explicit. 
 
-In a functional paradigm, where arbitrary modifications of data are not allowed, the relations between different entities must be made explicit. As such, there is a movement toward so called "Reactive" systems which model the application like a circuit in which information flows through to produce an output, the displayed user interface. The functional approach to these semantics is aptly called, "Functional Reactive Programming" or FRP. In his formulation of FRP, Elliot defined a system based on two primitive types, Behaviors, Events, and a set of combinators for generating new values based on those primitives cite:elliott_push-pull_2009. 
+As such, there is a movement toward a model which represents the application like a circuit. User inputs and events enter the circuit which causes changes to the displayed image. This technique is not specific to functional programming, and so the functional variation of this model is called "Functional Reactive Programming" or FRP. In his seminal paper on FRP, Elliot defined a system based on two primitive types, Behaviors, Events, and a set of combinators for generating new values based on those primitives cite:elliott_push-pull_2009. 
 
-Elliot describes behaviors as functions from time to a value. An example of this would be a ball in the air whose height is dependent on time and the velocity of the ball. As time progresses, the height of the ball decreases. These behaviors can be used to create more behaviors which depend on other streams of values. And example of a more complex behavior would be an object in the virtual world which was dependent on the location of the player's mouse at any given time. Character animations also fall under the category of a behavior. As time progresses, the animation progresses one frame, changing the configuration of the model skeleton causing movement.
+Elliot describes behaviors as functions from time to a value. An example of this would be a ball in the air whose height is dependent on time and the velocity of the ball. As time progresses, the height of the ball decreases. These behaviors can be used to create more behaviors dependent on other streams of values. Character animations fall under the category of a behavior. Each of the joints depends on a stream of angles and positions to progress the animation over time. 
+
+-- Possibly insert a picture of a cahracter joint graph here?
 
 An Event is a function from time to a possible value. The classic example of an event would be a mouse click. If one where to plot the function of an event it would remain mostly at zero until the event occurred, which would be visible as a small spike in the value before it returns to nothing. Events can be used to model discrete occurrences within the system which are then used by behaviors to alter the interface cite:wan_functional_2000.
 
 #+CAPTION: A reactive network for unit position
 [[./frp-unit-example.png]]
 
-In the above example, we can see two behaviors, the player unit's position and the alarm's position. Over time, the player's position will change which causes the active state of the alarm to be recalculated. Here, the difference between the player's position and the alarm is calculated and then that result is checked to see if it is less than five. The alarm triggering can be considered an event since it only occurs at discrete points in time. This model of entity behavior is similar to that of the Unreal engine's blueprint system.
+In the above example, we can see two behaviors, the player unit's position and the alarm's position. Over time, the player's position will change which causes the active state of the alarm to be recalculated. Here, the difference between the player's position and the alarm is calculated and then that result is checked to see if it is less than five. The alarm triggering can be considered an event since it only occurs at discrete points in time. 
+
+The simplicity of reactive systems defined like this have found success even outside of a functional context. Audio systems like Max represent sysnthesizers as networks of audio signals, allowing the user to design graphically. Even the Unreal game engine provides a model of entity behavior in a reactive style. Although functional languages cannot model an engine in the conventional way, an FRP alternative is a natural and proven solution.
 
 #+CAPTION: Blueprints in the Unreal Engine
 [[./unreal-blueprints.jpg]]
  
 ** Alternative and Improved formulations of FRP
 
-Although FRP creates a rich and expressive style to model a game engine with, there are several performance issues with the semantics as originally defined. For instance, given that all values are dependent on time, all values within the system must be constantly recalculated, which causes large amounts of wasteful work calculating values which have not changed. Another problem is that the original semantics also force all previous values for behaviors and events to be stored for the duration of the program. As time progresses, the memory usage slowly builds. This is unacceptable for a game engine, but there are other formulations of FRP which drastically reduce the problems with Elliot's initial design.
+Although FRP creates a rich and expressive style to model a game engine with, there are several performance issues with the semantics as originally defined. 
 
-In Czaplicki and Chong's formulation of FRP, changes do not propagate unless a discrete event occurs. This change, while unfaithful to the original semantics of FRP, is much more suited for graphical interfaces due to that face that the user can only interact with the system in discrete ways cite:czaplicki_asynchronous_2013. While certain systems would change continuously with time, like the physics simulation, the vast majority of components will only ever change with discrete events. This reduces the amount of recalculations needed.
+For instance, given that all values are dependent on time, all values within the system must be constantly recalculated, which causes large amounts of wasteful work calculating values which have not changed. In Czaplicki and Chong's formulation of FRP, changes do not propagate unless a discrete event occurs. This is much more suited for graphical interfaces due to that face that the user can only interact with the system in discrete ways cite:czaplicki_asynchronous_2013. 
 
-In his reformulation of the original FRP semantics, Elliott introduced the idea of reactive values and push-pull semantics to address the same performance issues. Reactive values allow for changes to certain values to be propagated or pushed through the system, leaving pull based updates to time dependent events. These reactive values allow for the same mental model for behaviors to be used without the performance loss cite:elliott_push-pull_2009.
+Another problem is that the original semantics also force all previous values for behaviors and events to be stored for the duration of the program. As time progresses, the memory usage slowly builds. In his reformulation, Elliott introduced the idea of reactive values and push-pull semantics to address the same performance issues. These reactive values allow for the same mental model for behaviors to be used without the performance loss cite:elliott_push-pull_2009.
 
-In Nilsson et. al a continuation formulation of FRP is presented where behaviors can be modeled as transition functions which return how they will behave after a discrete time change. By removing behaviors as first class within the framework, the previous performance costs are reduced and the semantics of working with behaviors is simplified cite:nilsson_functional_2002.
+An alternative to reactive values was presented in Nilsson et. al with the continuation formulation of FRP. In is model, direct manipulation of behaviors was removed in favor of a set of functions on already defined behaviors. This allowes for a faster implementation cite:nilsson_functional_2002.
 
-The game loop for a parallel engine can thus be described as a flow which takes user input, time, and the state of the world in the previous frame and then uses each as events and behaviors for calculating the next frame. A stream of messages can be used to model the communication of certain entities with each other. These messages can be interpreted at a synchronization point before rendering which interprets the messages and uses STM to safely modify data or otherwise pass the message on to the next frame to be handled by the appropriate entities.
+Many of these techniques have been implemented and used in game development with Haskell already. Libraries like Reflex have been used to create inerative web applications. Another FRP library, Yampa has been used in the development of several games for android. 
 
-In this design, all entities can calculate their changes to themselves and the world in parallel and thus the workload can be balanced across the processors at a fine grained level. This is an improvement over the manager approach to parallelization in that managers were forced onto a single processor and unable to share their workloads with other managers which might have finished their tasks sooner.
-  
+-- Citations to these libraries and the links to the games
+
 * Addressing Efficency Concerns 
 
 Although pure functional programming allows for expressivity and simple parallelization, there are performance costs which must be addressed. 
@@ -231,6 +204,13 @@ Bernardy et. al found that linear type systems could be added to existing, lazy 
 
 By making use of modern research into functional programming languages, it appears possible to achieve a parallel game engine while maintaining an expressive system for designing games. Immutability and referential transparency make any process within the engine trivially parallelizable. The traditional game loop translates into a functional reactive framework which allows various updates within the world to be modeled in a consistent way. Using software transactional memory, updates to the game state can be made without the dangers of dead locks. Using techniques like fusion, compact regions, and linear types, garbage collection can be minimized or even eliminated. While there may exist frameworks which allows for a game engine to be parallelized within traditional paradigms, the functional approach provides the most direct means to achieve parallel execution. 
 
+** Future work
+
+- flesh out the design of sublanguage for defining game mechanics
+  - Are there primitives for typical scripts and can they be optimized?
+- generate shader code in Haskell
+- using strictness analysis to remove indirections in code
+- adding direct support for modern artifical intelligence techniques
 
 bibliography:refs.bib
 bibliographystyle:apacite
