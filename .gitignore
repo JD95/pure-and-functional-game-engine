@@ -224,3 +224,6 @@ TSWLatexianTemp*
 *tex
 *.tex
 *.png
+/*.csv
+*.txt
+*.xlsx
