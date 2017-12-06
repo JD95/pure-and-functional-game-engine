@@ -5,7 +5,7 @@
 # paper meta 
 #+TITLE: A Pure and Parallel Game Engine
 #+AUTHOR: Jeffrey Dwyer
-#+DATE: 11/15/2017
+#+DATE: 12/06/2017
 #+OPTIONS: toc:nil
 
 # latex options
@@ -84,12 +84,12 @@ qsort (x:xs) = qsort ys ++ x : qsort zs
 \end{spacing}
 \vspace{10mm}
 
-The above is an implementation of quicksort in Haskell. A given list is split into partitions (ys and zs) and then those paritions are also quicksorted. By default, the sorting will happen in sequence, with one half completing before the other half is worked on. However, given the nature of functional languages, we do not have to think of the process as a series of steps, but rather as a graph of expressions to evaluate.
+The above is an implementation of quicksort in Haskell. A given list is split into partitions (ys and zs) and then those paritions are also quicksorted. By default, the sorting will happen in sequence, with one half completing before the other half is worked on. However, given the nature of functional languages, process should not be thought of as a series of steps, but rather as a graph of expressions to evaluate.
 
 #+CAPTION: The Quicksort function as a graph
 [[./function-graph-example.png]]
 
-Because there are no dependencies on state between any of the leaves in such graphs, each can be evaluated and reduced in any order or at the same time. It is this property which makes languages like Haskell so easy to run in parallel. Most programs need only a small annotation to indicate that the expression should be evaluated at the same time.
+There are no dependencies on state between any of the leaves in such graphs and each can be evaluated then reduced in any order or at the same time. It is this property which makes languages like Haskell so easy to run in parallel. Most functional programs need only a small annotation to indicate which expressions to evaluate at the same time.
 
 That being said, because these values are immutable, the original list is not being sorted, rather a new, in order list is being created. This is problematic as it takes more time to create new data than it does to update existing data. Another issue is that functional languages, Haskell included, manage their memory using automatic processes called garbage collection. Every so often, the program will be paused so memory which is no longer needed can be freed. Again, these types of delays prevent the kind of performance needed by modern video games. 
 
@@ -107,8 +107,6 @@ As such, there is a movement toward a model which represents the application lik
 
 Elliot describes behaviors as functions from time to a value. An example of this would be a ball in the air whose height is dependent on time and the velocity of the ball. As time progresses, the height of the ball decreases. These behaviors can be used to create more behaviors dependent on other streams of values. Character animations fall under the category of a behavior. Each of the joints depends on a stream of angles and positions to progress the animation over time. 
 
--- Possibly insert a picture of a cahracter joint graph here?
-
 An Event is a function from time to a possible value. The classic example of an event would be a mouse click. If one where to plot the function of an event it would remain mostly at zero until the event occurred, which would be visible as a small spike in the value before it returns to nothing. Events can be used to model discrete occurrences within the system which are then used by behaviors to alter the interface cite:wan_functional_2000.
 
 #+CAPTION: A reactive network for unit position
@@ -117,6 +115,9 @@ An Event is a function from time to a possible value. The classic example of an 
 In the above example, we can see two behaviors, the player unit's position and the alarm's position. Over time, the player's position will change which causes the active state of the alarm to be recalculated. Here, the difference between the player's position and the alarm is calculated and then that result is checked to see if it is less than five. The alarm triggering can be considered an event since it only occurs at discrete points in time. 
 
 The simplicity of reactive systems defined like this have found success even outside of a functional context. Audio systems like Max represent sysnthesizers as networks of audio signals, allowing the user to design graphically. Even the Unreal game engine provides a model of entity behavior in a reactive style. Although functional languages cannot model an engine in the conventional way, an FRP alternative is a natural and proven solution.
+
+#+CAPTION: Cycle74's Max Environment
+[[./max.png]]
 
 #+CAPTION: Blueprints in the Unreal Engine
 [[./unreal-blueprints.jpg]]
@@ -130,10 +131,6 @@ For instance, given that all values are dependent on time, all values within the
 Another problem is that the original semantics also force all previous values for behaviors and events to be stored for the duration of the program. As time progresses, the memory usage slowly builds. In his reformulation, Elliott introduced the idea of reactive values and push-pull semantics to address the same performance issues. These reactive values allow for the same mental model for behaviors to be used without the performance loss cite:elliott_push-pull_2009.
 
 An alternative to reactive values was presented in Nilsson et. al with the continuation formulation of FRP. In is model, direct manipulation of behaviors was removed in favor of a set of functions on already defined behaviors. This allowes for a faster implementation cite:nilsson_functional_2002.
-
-Many of these techniques have been implemented and used in game development with Haskell already. Libraries like Reflex have been used to create inerative web applications. Another FRP library, Yampa has been used in the development of several games for android. 
-
--- Citations to these libraries and the links to the games
 
 * Addressing Efficency Concerns 
 
@@ -191,13 +188,9 @@ Bernardy et. al found that linear type systems could be added to existing, lazy 
 
 By making use of modern research into functional programming languages, it appears possible to achieve a parallel game engine while maintaining an expressive system for designing games. Immutability and referential transparency make any process within the engine trivially parallelizable. The traditional game loop translates into a functional reactive framework which allows various updates within the world to be modeled in a consistent way. Using software transactional memory, updates to the game state can be made without the dangers of dead locks. Using techniques like fusion, compact regions, and linear types, garbage collection can be minimized or even eliminated. While there may exist frameworks which allows for a game engine to be parallelized within traditional paradigms, the functional approach provides the most direct means to achieve parallel execution. 
 
-** Future work
+** Future work 
 
-- flesh out the design of sublanguage for defining game mechanics
-  - Are there primitives for typical scripts and can they be optimized?
-- generate shader code in Haskell
-- using strictness analysis to remove indirections in code
-- adding direct support for modern artifical intelligence techniques
+A common tactic for development in functional languages is the construction of an embeded, domain specific language. These embeded languages provide a cleaner expression of intent within a certain domain. Given the techniques described in the paper, it would be possible to recover many of the familiar tools for other game engines by constructing such an embeded language for the engine. This language could also be extended for graphical shading programming which run directly on the GPU which are usually handled in seperate tools from the engine.
 
 bibliography:refs.bib
 bibliographystyle:apacite
@@ -229,6 +222,7 @@ The performance results of the prototype engine will be compared to the performa
 The results will be averaged for each machine and the results will be analyzed to see how the performance changes as the number of cores increases and compared between the two chip architectures.
 
 * Literature Review
-
+#+ATTR_LATEX: :height 600
+[[./lit-review.PNG]]
 
 \end{appendices}
